@@ -11,7 +11,7 @@ OBJ = pll.o usart.o morse.o pi4.o wspr.o beacon.o
 
 beacon: $(OBJ)
 	$(CC) $(LDFLAGS) -o beacon.elf $^ $(LIBS)
-	$(OBJCPY) -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0 gpsdo.elf gpsdo.hex
+	$(OBJCPY) -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0 beacon.elf beacon.hex
 	$(OBJCPY) -O ihex -R .eeprom beacon.elf beacon.hex
 	avr-size -C --mcu=atmega328p beacon.elf
 

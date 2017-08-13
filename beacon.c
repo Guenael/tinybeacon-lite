@@ -29,26 +29,27 @@
 /* |                                                                   |
    |  TinyBeacon project                                               |
    |                                                                   |
-   |  - VHF/UHF Beacon (design available for 50, 144, 220 & 440 MHz)   |
-   |  - Compact design / Credit card size                              |
-   |  - QRP, 5W output power                                           |
    |  - 10 MHz oscillator stabilized by GPS (GPSDO)                    |
-   |  - DC-DC Power supply within 10-15V, 1.5A max                     |
-   |  - Compatible with WSPR & PI4 protocols                           |
+   |  - 4 multiplexed output and 1 mixed output                        |
+   |  - Compact design / Credit card size                              |
+   |  - DC-DC Power supply within 10-15V, 0.5A max                     |
    |                                                                   |
    |                                                                   |
-   |  IO Mapping uController, rev.C                                    |
+   |  IO Mapping uController, rev.A                                    |
    |                                                                   |
-   |  - PC4/SDA  (pin 27) | I2C SDA                                    |
-   |  - PC5/SCL  (pin 28) | I2C SCL                                    |
+   |  - PC0      (pin 23) | AN1                                        |
+   |  - PC1      (pin 24) | AN2                                        |
    |  - PD0/RXD  (pin 30) | USART RX                                   |
    |  - PD1/TXD  (pin 31) | USART TX                                   |
-   |  - PD5      (pin  9) | GPS INT                                    |
-   |  - PD6      (pin 10) | PA EN                                      |
+   |  - PD2      (pin 32) | SYNC                                       |
    |  - PD7      (pin 11) | INFO LED                                   |
+   |  - PD6      (pin 10) | PA EN                                      |
    |  - PB0      (pin 12) | PLL LOCK                                   |
-   |  - PB2      (pin 14) | PLL EN                                     |
-   |  (UPDATE !!!!!!!!!!!!!!!!!!)                                      | */
+   |  - PB2      (pin 14) | PLL_LE (DAC)                               |
+   |  - PB3      (pin 15) | PRG_MOSI (DAC)                             |
+   |  - PB5      (pin 17) | PRG_SCK (DAC)                              |
+   |                                                                   | */
+
 
 #include "config.h"
 
@@ -96,8 +97,22 @@ int main (void) {
     PORTD |= _BV(PORTD7);
 
     /* Start with a unsync TX, boring to wait a full sync... */
-    pi4Send();
-    wsprSend();
+    //pi4Send();
+    //wsprSend();
+
+    // DEBUG
+    _delay_ms(30000);  // TODO : TimeAlign
+    while(1) {
+        pllSetFreq((uint64_t)MORSE_FREQUENCY * 1000000ULL, 0);
+        pllUpdate(0);
+        _delay_ms(10);
+
+        pllPA(1);
+        pllRfOutput(1);
+        _delay_ms(10000);
+        pllRfOutput(0);
+        pllPA(0);
+    }
 
     /* Loop sequence :
        - PI4 + Morse + Tone (1 minute)
