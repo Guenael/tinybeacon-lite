@@ -32,7 +32,7 @@
 #include "config.h"
 
 
-void pllInit(uint8_t addr);
+void pllInit();
 void pllShutdown();
 void pllUpdate(uint8_t bank);
 void pllUpdateTiny(uint8_t bank);

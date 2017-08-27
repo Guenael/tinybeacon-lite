@@ -39,15 +39,15 @@
    |                                                                   |
    |  - PC0      (pin 23) | AN1                                        |
    |  - PC1      (pin 24) | AN2                                        |
+   |  - PC2      (pin 32) | SYNC                                       |
    |  - PD0/RXD  (pin 30) | USART RX                                   |
    |  - PD1/TXD  (pin 31) | USART TX                                   |
-   |  - PD2      (pin 32) | SYNC                                       |
    |  - PD7      (pin 11) | INFO LED                                   |
    |  - PD6      (pin 10) | PA EN                                      |
    |  - PB0      (pin 12) | PLL LOCK                                   |
-   |  - PB2      (pin 14) | PLL_LE (DAC)                               |
-   |  - PB3      (pin 15) | PRG_MOSI (DAC)                             |
-   |  - PB5      (pin 17) | PRG_SCK (DAC)                              |
+   |  - PB2      (pin 14) | PLL_LE                                     |
+   |  - PB3      (pin 15) | PRG_MOSI                                   |
+   |  - PB5      (pin 17) | PRG_SCK                                    |
    |                                                                   | */
 
 
@@ -66,7 +66,19 @@
 
 
 void pi4sequence() {
+    /* 1st part : Send PI4 message, 25 sec */
+    pi4Send();
 
+    /* 2nd part : Send morse message */
+    morse2TonesSendMessage();
+
+    /* 3th part : Send a carrier, 10 sec, same frequency */
+    pllUpdate(1);
+    pllPA(1);
+    pllRfOutput(1);
+    _delay_ms(10000);
+    pllRfOutput(0);
+    pllPA(0);
 }
 
 
@@ -77,12 +89,15 @@ int main (void) {
     CLKPR = 0;            // Set prescaler to 0 = Restore system clock to 10 MHz
     sei();
 
-    /* LED : Set pin 11 of PORT-PD7 for output*/
+    /* LED : Set pin 11 of PORT-PD7 for output + Sync pin */
     DDRD |= _BV(DDD7);
+    
+    /* SYNC : Set pin 32 of PORT-PC2 as input */
+    DDRC &= ~_BV(DDC2);
 
     /* For now, used for DEBUG purpose only. Future : CLI for freq settings & modes */
-    usartInit();
-    _delay_ms(10);
+    //usartInit();
+    //_delay_ms(10);
 
     /* Prepare the message to encode for PI4 message */
     pi4Encode();
@@ -91,103 +106,37 @@ int main (void) {
     wsprEncode();
 
     /* ADF4355 PLL Init, conf & settings */
-    pllInit(0x60);  // 0x60 used only for Si5351 (I2C addr.)
+    pllInit();
 
     /* End of init sequence : Turn on the LED (pin 11) */
-    PORTD |= _BV(PORTD7);
+    PORTD |= _BV(PD7);
 
-    /* Start with a unsync TX, boring to wait a full sync... */
-    //pi4Send();
-    //wsprSend();
-
-    // DEBUG
-    _delay_ms(30000);  // TODO : TimeAlign
-    while(1) {
-        pllSetFreq((uint64_t)MORSE_FREQUENCY * 1000000ULL, 0);
-        pllUpdate(0);
-        _delay_ms(10);
-
-        pllPA(1);
-        pllRfOutput(1);
-        _delay_ms(10000);
-        pllRfOutput(0);
-        pllPA(0);
-    }
+    /* Wait SYNC low (PC2, pin 32) */
+    while ( bit_is_clear(PINC, PC2) ) {}
 
     /* Loop sequence :
+       - WSPR (2 minutes)x
        - PI4 + Morse + Tone (1 minute)
        - PI4 + Morse + Tone (1 minute)
-       - WSPR (2 minutes)
     */
     while(1) {
-        /* 1st part : Send PI4 message, 25 sec */
-        pi4Send();
+    	/* Wait for an even minute */
+    	while ( bit_is_set(PINC, PC2) ) {}
+    	/* Send WSPR message */
+        wsprSend();		
 
-        /* 2nd part : Send morse message */
-        morse2TonesSendMessage();
+    	/* Wait for an even minute */
+    	while ( bit_is_set(PINC, PC2) ) {}
+    	/* Send PI4 message */
+		pi4sequence();
 
-        /* 3th part : Send a carrier, 10 sec, same frequency */
-        pllUpdate(1);
-        pllPA(1);
-        pllRfOutput(1);
-        _delay_ms(10000);
-        pllRfOutput(0);
-        pllPA(0);
-
-        //timeAlignWSPR();
-        wsprSend();
+        /* Two time! */
+    	/* Wait for an odd minute */
+    	while ( bit_is_clear(PINC, PC2) ) {}
+    	/* Send PI4 message */    	
+		pi4sequence();
     }
 
     /* This case never happens :) Useless without powermanagement... */
     return 0;
 }
-
-/* === Si5351 DEBUG 60sec (2500 x 2 x 12ms)
-pllSetFreq(144430000000000,0);
-pllSetFreq(144435000000000,1);
-pllUpdate(0);
-pllRfOutput(1);
-pllPA(1);
-
-for (uint32_t i=0; i<2500; i++) { //while(1) {
-  pllUpdate(0);
-  //pllRfOutput(0);
-  //_delay_ms(1000);
-
-  pllUpdate(1);
-  //pllRfOutput(1);
-  //_delay_ms(1000);
-}
-
-pllRfOutput(0);
-pllPA(0);
-*/
-
-/* === ADF4355 DEBUG 60sec
-pllSetFreq(222295000000000,0); 
-pllUpdate(0);
-
-pllRfOutput(1);
-pllPA(1);
-_delay_ms(667);
-pllRfOutput(0);
-pllPA(0);
-
-for (uint32_t i=0; i<60000; i++) { //while(1) {
-  pllUpdate(0);
-}
-
-pllRfOutput(1);
-pllPA(1);
-_delay_ms(667);
-pllRfOutput(0);
-pllPA(0);
-*/
-
-/* TEST 28.8MHz clock 
-pllSetFreq(28800000000000,0);
-pllUpdate(0);
-pllRfOutput(1);
-pllPA(1);
-while(1) { }
-*/

@@ -40,21 +40,21 @@
 #define RF_OUTPUT_ENABLE      6  //  7th bit, Register 6
 #define PLL_UPDATE_DELAY      2
 
-/* Precalculated settings for the PLL */
+/* Precalculated settings for the PLL 1300 TEST*/
 static uint32_t pllGeneralSettings[13] = {
-    0x00201CC0,  // Register 0
-    0x0CCCCCC1,  // Register 1
-    0x00000012,  // Register 2
-    0x40000003,  // Register 3
-    0x3000C184,  // Register 4
+    0x00202080,  // Register 0
+    0x00000001,  // Register 1
+    0x000000A2,  // Register 2
+    0x00000003,  // Register 3
+    0x10008184,  // Register 4
     0x00800025,  // Register 5
-    0x35002CF6,  // Register 6
+    0x354024F6,  // Register 6
     0x12000007,  // Register 7
     0x102D0428,  // Register 8
-    0x14053CF9,  // Register 9
-    0x60C017FA,  // Register 10
+    0x05053CC9,  // Register 9
+    0x60C0067A,  // Register 10
     0x0061300B,  // Register 11
-    0x0000041C   // Register 12
+    0x0001041C   // Register 12
 };
 
 
@@ -95,7 +95,7 @@ void pllTransmitWord(uint32_t data) {
 }
 
 
-void pllInit(uint8_t addr) {
+void pllInit() {
     DDRB   |= _BV(DDB3);       /* MOSI   - Enable output */
     DDRB   |= _BV(DDB5);       /* SCK    - Enable output */
 
@@ -163,11 +163,19 @@ void pllUpdate(uint8_t bank) {
 
 
 void pllUpdateTiny(uint8_t bank) {
+    //pllGeneralSettings[6] &= ~(1UL<<RF_OUTPUT_ENABLE);
+    //pllTransmitWord(pllGeneralSettings[6]);
+    PORTD &= ~_BV(PORTD6);
+
     /* Quick and dirty update if the delta is very low */
     pllTransmitWord(pllCustomSettings[bank][1]);          // Register 1
     pllCustomSettings[bank][0] |= (1UL<<AUTOCAL);         // Autocal enable
     pllTransmitWord(pllCustomSettings[bank][0]);          // Register 0 (autocal enabled [DB21 = 1])
     _delay_us(900);  // Align on 1ms
+
+    //pllGeneralSettings[6] |= (1UL<<RF_OUTPUT_ENABLE);
+    //pllTransmitWord(pllGeneralSettings[6]);
+    PORTD |= _BV(PORTD6);
 }
 
 

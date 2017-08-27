@@ -119,10 +119,10 @@ void wsprEncode() {
     }
 
     /* Interleaving */
-    uint32_t Interleaved[WSPR_SYMBOLS]; // FIX mem fill 0
+    uint32_t Interleaved[WSPR_SYMBOLS] = {0};
     uint8_t P=0;
     uint8_t R=0;
-    memset (Interleaved, 0x00, WSPR_SYMBOLS);
+    //memset (Interleaved, 0x00, WSPR_SYMBOLS);
     for (uint8_t i=0; i<255; i++) {
         for (uint8_t BitNo=0; BitNo<=7; BitNo++) {
             if ((i >> BitNo) & 1)

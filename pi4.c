@@ -110,7 +110,7 @@ void PI4MakeMessage(char *msg) {
     uint8_t P=0;
     uint8_t R=0;
     uint32_t Interleaved[PI4_SYMBOLS] = {0};                           // FIXME mem fill 0
-    memset (Interleaved, 0x00, PI4_SYMBOLS);
+    //memset (Interleaved, 0x00, PI4_SYMBOLS);
 
     for (uint16_t i=0; i<=255; i++) {                                  // FIXME/CHECK
         for (uint8_t BitNo=0; BitNo<=7; BitNo++) {
